@@ -101,10 +101,9 @@ impl CoinGeckoClient {
                 }
             }
 
-            // Optional: Add a delay before retrying
             if retries < max_retries {
-                println!("Retrying {}",retries);
-                sleep(Duration::from_secs(1)).await;
+                println!("Sleep and Retrying {}",retries);
+                sleep(Duration::from_secs(2)).await;
             }
         }
 
