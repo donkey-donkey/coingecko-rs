@@ -1,9 +1,12 @@
 #![allow(clippy::too_many_arguments)]
 use std::collections::HashMap;
+use std::time::Duration;
 
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{ NaiveDate, NaiveDateTime};
 use reqwest::Error;
 use serde::de::DeserializeOwned;
+use tokio::time::sleep;
+use anyhow::Result;
 
 use crate::params::{
     CompaniesCoinId, DerivativeExchangeOrder, DerivativesIncludeTickers, MarketsOrder, OhlcDays,
@@ -70,6 +73,42 @@ impl CoinGeckoClient {
             .await?
             .json()
             .await
+
+    }
+
+    async fn get_retry<R: DeserializeOwned>(&self, endpoint: &str) -> Result<R> {
+        let max_retries = 3; // Set the maximum number of retries
+        let mut retries = 0;
+
+        while retries < max_retries {
+            let response = reqwest::get(format!("{}/{}", self.host, endpoint)).await;
+
+            match response {
+                Ok(response) => match response.json::<R>().await {
+                    Ok(data) => return Ok(data),
+                    Err(err) => {
+                        retries += 1;
+                        if retries >= max_retries {
+                            return Err(err.into()); // Convert to anyhow::Error
+                        }
+                    },
+                },
+                Err(err) => {
+                    retries += 1;
+                    if retries >= max_retries {
+                        return Err(err.into()); // Convert to anyhow::Error
+                    }
+                }
+            }
+
+            // Optional: Add a delay before retrying
+            if retries < max_retries {
+                println!("Retrying {}",retries);
+                sleep(Duration::from_secs(1)).await;
+            }
+        }
+
+        Err(anyhow::anyhow!("Maximum retries reached without success"))
     }
 
     /// Check API server status
@@ -308,9 +347,9 @@ impl CoinGeckoClient {
         community_data: bool,
         developer_data: bool,
         sparkline: bool,
-    ) -> Result<CoinsItem, Error> {
+    ) -> Result<CoinsItem> { //Error> {
         let req = format!("/coins/{}?localization={}&tickers={}&market_data={}&community_data={}&developer_data={}&sparkline={}", id, localization, tickers, market_data, community_data, developer_data, sparkline);
-        self.get(&req).await
+        self.get_retry(&req).await
     }
 
     /// Get coin tickers (paginated to 100 items)
