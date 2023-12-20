@@ -77,7 +77,7 @@ impl CoinGeckoClient {
     }
 
     async fn get_retry<R: DeserializeOwned>(&self, endpoint: &str) -> Result<R> {
-        let max_retries = 4; // Set the maximum number of retries
+        let max_retries = 1; // Set the maximum number of retries
         let mut retries = 0;
 
         while retries < max_retries {
