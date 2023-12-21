@@ -87,7 +87,7 @@ pub struct CoinsItem {
     pub id: String,
     pub symbol: String,
     pub name: String,
-    pub asset_platform_id: Value,
+    pub asset_platform_id: Option<Value>,
     pub platforms: Option<HashMap<String, Option<String>>>,
     pub block_time_in_minutes: f64,
     pub hashing_algorithm: Value,
